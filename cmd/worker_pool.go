@@ -15,7 +15,7 @@ type WorkerPool struct {
 func NewWorkerPool(count int) *WorkerPool {
 	return &WorkerPool{
 		Count:  count,
-		Sender: make(chan models.Restaurant, count*2),
+		Sender: make(chan models.Restaurant, count),
 		Ender:  make(chan bool),
 	}
 }

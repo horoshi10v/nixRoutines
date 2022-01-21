@@ -11,12 +11,11 @@ type Menu struct {
 	Ingredients []string `json:"ingredients"`
 }
 
-var _ Model = &Menu{}
-
-func (m *Menu) Insert(db *sql.DB, params ...interface{}) error {
-	query := `INSERT INTO Menu(ID, REST_ID, PRODUCT_ID, PRICE)
-			  SELECT Menu.id, Restaurant.id, Product.id, price FROM Restaurant inner join Menu on Restaurant.id = Menu.rest_id inner join Product on Menu.product_id = Product.id
-			  WHERE Menu.id = ?`
-	_, err := db.Exec(query, m.Id, params[0])
-	return err
+func (prod *Menu) Insert(db *sql.DB) (int64, error) {
+	res, err := db.Exec("INSERT INTO product VALUE (?, ?, ?, ?, ?)",
+		prod.Id, prod.Name, prod.Price, prod.Image, prod.Type)
+	if err != nil {
+		return 0, err
+	}
+	return res.LastInsertId()
 }

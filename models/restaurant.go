@@ -13,10 +13,13 @@ type Restaurant struct {
 
 var _ = &Restaurant{}
 
-func (r *Restaurant) Insert(db *sql.DB) error {
-	query := `INSERT INTO restaurant(id, name , image, open_at, close_at) 
-			  VALUES (?,?,?,?,?)`
-	_, err := db.Exec(query, r.Id, r.Name, r.Image,
-		r.WorkingHours.Opening, r.WorkingHours.Closing)
-	return err
+func (rest *Restaurant) Insert(db *sql.DB) (int64, error) {
+	query := `INSERT INTO restaurant(id, name, type, image, open_at, close_at) 
+			  VALUES (?,?,?,?,?,?)`
+	res, err := db.Exec(query, rest.Id, rest.Name, rest.Type, rest.Image,
+		rest.WorkingHours.Opening, rest.WorkingHours.Closing)
+	if err != nil {
+		return 0, err
+	}
+	return res.LastInsertId()
 }

@@ -8,7 +8,7 @@ import (
 	"os"
 )
 
-func ParseFiles(filePath string, c chan models.Restaurant) (models.Restaurant, error) {
+func ParseFiles(filePath string) (models.Restaurant, error) {
 	var restaurant models.Restaurant
 	jsonFile, err := os.Open(filePath)
 	if err != nil {
@@ -27,5 +27,6 @@ func ParseFiles(filePath string, c chan models.Restaurant) (models.Restaurant, e
 	if err != nil {
 		log.Println(err)
 	}
-	c <- restaurant
+	//c1 <- restaurant
+	return restaurant, nil
 }
