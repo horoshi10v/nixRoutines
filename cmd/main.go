@@ -4,14 +4,45 @@ import (
 	"NIXRutine/database"
 	"NIXRutine/filebase"
 	"NIXRutine/models"
+	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"strconv"
 	"strings"
 	"sync"
 )
 
+func GetProducts(resp http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodGet {
+		http.Error(resp, "not alowed", http.StatusMethodNotAllowed)
+	}
+	conn, _ := database.Connect()
+	prod := make([]*models.Menu, 0)
+	rows, err := conn.Query("SELECT * FROM product")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		pr := new(models.Menu)
+		err := rows.Scan(&pr.Id, &pr.Name, &pr.Price, &pr.Image, &pr.Type)
+		if err != nil {
+			log.Fatal(err)
+		}
+		prod = append(prod, pr)
+	}
+	if err = rows.Err(); err != nil {
+		log.Fatal(err)
+	}
+	data, _ := json.Marshal(prod)
+	resp.Header().Add("Access-Control-Allow-Origin", "*")
+	fmt.Fprintln(resp, string(data))
+}
 func main() {
+	server := http.NewServeMux()
+	server.HandleFunc("/get_products", GetProducts)
+	http.ListenAndServe(":8080", server)
 	conn, err := database.Connect()
 	if err != nil {
 		log.Fatal(err)
@@ -38,13 +69,15 @@ func main() {
 						log.Fatal(err)
 					}
 				}
-				restProductQuery := `INSERT INTO menu_products(rest_id, product_id, price) 
+				restProductQuery := `INSERT INTO menu_products(rest_id, product_id, price)
 					  VALUES (?,?,?)`
 				_, err = conn.Exec(restProductQuery, restID, prodID, prod.Price)
-
+				if err != nil {
+					fmt.Println(err)
+				}
 				for _, ing := range prod.Ingredients {
-					var ingredientsQuery = `INSERT INTO ingredient (name) VALUE(?)`
-					//conn.Exec("INSERT INTO ingredient (name) VALUE(?)", ing)
+					ingredientsQuery := `INSERT INTO ingredient(name) VALUE(?)`
+					//conn.Exec("INSERT INTO ingredient(name) VALUE(?)", ing)
 					ingredientRes, err := conn.Exec(ingredientsQuery, ing)
 					if err != nil {
 						if strings.HasPrefix(err.Error(), "Error 1062") {
@@ -57,7 +90,7 @@ func main() {
 					if err != nil {
 						log.Fatal(err)
 					}
-					productIngredientsQuery := `INSERT INTO product_ingredient (product_id, ingredient_id)
+					productIngredientsQuery := `INSERT INTO product_ingredient(product_id, ingredient_id)
 											VALUES (?,?)`
 					_, err = conn.Exec(productIngredientsQuery, prodID, ingID)
 					if err != nil {
@@ -84,36 +117,6 @@ func main() {
 	for _, rest = range restaurants {
 		pool.Sender <- rest
 	}
-
 	pool.Stop()
 	wg.Wait()
 }
-
-/*var restaurants []models.Restaurant
-c1 := make(chan models.Restaurant, 7)
-for i := 0; i < 7; i++ {
-	iterator := i + 1
-	go func() {
-		err := filebase.ParseFiles(filePath+strconv.Itoa(iterator)+".json", c1)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}()
-}*/
-/*for i := 0; i < 7; i++ {
-	restaurants = append(restaurants, <-c1)
-}
-database.DropTable1(conn)
-var wg sync.WaitGroup
-for i := 0; i < 7; i++ {
-	iterator := i
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		err := restaurants[iterator].Insert(conn)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}()
-}
-wg.Wait()*/
